@@ -74,7 +74,7 @@ test("opponent escape is previewed before confirmation and remains the opponent'
   try {
     await import("./app.js?preview-test");
     const board = elements.board;
-    assert.equal(elements.opportunities.hidden, true);
+    assert.equal(elements.opportunities.textContent, "");
     board.children[16].listeners.pointerenter();
     assert.match(elements.opportunities.textContent, /c1 → a3: e7/);
     assert.doesNotMatch(elements.opportunities.textContent, /f1 → h3/);
@@ -83,10 +83,23 @@ test("opponent escape is previewed before confirmation and remains the opponent'
     board.children[16].focus();
     assert.match(elements.opportunities.textContent, /c1 → a3: e7/);
     board.children[0].focus();
-    assert.equal(elements.opportunities.hidden, true);
+    assert.equal(elements.opportunities.textContent, "");
     board.listeners.pointerleave();
-    assert.equal(elements.opportunities.hidden, true);
+    assert.equal(elements.opportunities.textContent, "");
     assert.doesNotMatch(board.children[52].attributes["aria-label"], /escape option after move/);
+    board.children[16].focus();
+    board.children[23].listeners.pointerenter();
+    assert.match(elements.opportunities.textContent, /f1 → h3: d7/);
+    board.listeners.pointerleave();
+    assert.match(elements.opportunities.textContent, /c1 → a3: e7/);
+    board.listeners.focusout();
+    assert.equal(elements.opportunities.textContent, "");
+    board.children[23].listeners.pointerenter();
+    board.children[16].focus();
+    board.listeners.focusout();
+    assert.match(elements.opportunities.textContent, /f1 → h3: d7/);
+    board.listeners.pointerleave();
+    assert.equal(elements.opportunities.textContent, "");
     board.children[2].click();
     assert.match(elements.opportunities.textContent, /c1 → a3: e7/);
     assert.doesNotMatch(elements.opportunities.textContent, /f1 → h3/);
@@ -135,6 +148,19 @@ test("opponent escape is previewed before confirmation and remains the opponent'
       assert.match(board.children[square].attributes["aria-label"], /available destination/);
     board.children[63].click();
     assert.match(board.children[63].attributes["aria-label"], /White ship/);
+
+    elements.restart.click();
+    selectMove(3, 19);
+    board.children[19].listeners.pointerenter();
+    assert.match(elements.opportunities.textContent, /a3 → d3: h7/);
+    assert.match(elements.opportunities.textContent, /a6 → d3: h7/);
+    assert.match(board.children[55].attributes["aria-label"], /a3 to d3; a6 to d3/);
+    board.children[16].click();
+    board.children[19].listeners.pointerenter();
+    assert.match(elements.opportunities.textContent, /a3 → d3: h7/);
+    assert.doesNotMatch(elements.opportunities.textContent, /a6 → d3/);
+    assert.match(board.children[55].attributes["aria-label"], /a3 to d3/);
+    assert.doesNotMatch(board.children[55].attributes["aria-label"], /a6 to d3/);
   } finally {
     delete globalThis.document;
   }

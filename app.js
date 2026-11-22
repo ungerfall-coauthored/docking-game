@@ -14,6 +14,8 @@ let targets = [];
 let focusedSquare = 0;
 let preview = null;
 let activeSquare = null;
+let hoverSquare = null;
+let focusSquare = null;
 let candidates = [];
 let decorations = [];
 
@@ -90,10 +92,12 @@ function render() {
       if (previous) previous.tabIndex = -1;
       focusedSquare = square;
       button.tabIndex = 0;
+      focusSquare = square;
       activeSquare = square;
       updateHighlights();
     });
     button.addEventListener("pointerenter", () => {
+      hoverSquare = square;
       activeSquare = square;
       updateHighlights();
     });
@@ -110,7 +114,6 @@ function updateHighlights() {
     ? `Possible displacements (C = opponent, E = escape): ${escapes.map(option =>
       `${squareName(option.from)} → ${squareName(option.to)}: ${option.choices.map(squareName).join(", ")}`).join("; ")}.`
     : "";
-  opportunities.hidden = !escapes.length;
   for (let square = 0; square < decorations.length; square++) {
     const { button, label, escapeMarker, captureMarker } = decorations[square];
     const escapeFor = escapes.filter(option => option.choices.includes(square));
@@ -172,7 +175,14 @@ boardElement.addEventListener("keydown", event => {
 });
 
 boardElement.addEventListener("pointerleave", () => {
-  activeSquare = null;
+  hoverSquare = null;
+  activeSquare = focusSquare;
+  updateHighlights();
+});
+
+boardElement.addEventListener("focusout", () => {
+  focusSquare = null;
+  activeSquare = hoverSquare;
   updateHighlights();
 });
 
@@ -204,6 +214,8 @@ restart.addEventListener("click", () => {
   focusedSquare = 0;
   preview = null;
   activeSquare = null;
+  hoverSquare = null;
+  focusSquare = null;
   render();
 });
 render();
