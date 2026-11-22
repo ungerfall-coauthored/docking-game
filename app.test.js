@@ -17,7 +17,7 @@ test("board keyboard navigation keeps one tab stop across selection and restart"
     }
     click() { this.listeners.click?.(); }
   }
-  const elements = Object.fromEntries(["board", "status", "hint", "opportunities", "restart"].map(id => [id, new Element()]));
+  const elements = Object.fromEntries(["board", "status", "hint", "opportunities", "restart", "mode"].map(id => [id, new Element()]));
   globalThis.document = {
     querySelector: selector => elements[selector.slice(1)],
     createElement: () => new Element()
@@ -66,7 +66,7 @@ test("hover previews escape and selecting an opponent immediately enables its es
     focus() { document.activeElement = this; this.listeners.focus?.(); }
     click() { this.listeners.click?.(); }
   }
-  const elements = Object.fromEntries(["board", "status", "hint", "opportunities", "restart"].map(id => [id, new Element()]));
+  const elements = Object.fromEntries(["board", "status", "hint", "opportunities", "restart", "mode"].map(id => [id, new Element()]));
   globalThis.document = {
     querySelector: selector => elements[selector.slice(1)],
     createElement: () => new Element()
@@ -152,6 +152,81 @@ test("hover previews escape and selecting an opponent immediately enables its es
     assert.match(board.children[55].attributes["aria-label"], /a3 to d3/);
     assert.doesNotMatch(board.children[55].attributes["aria-label"], /a6 to d3/);
   } finally {
+    delete globalThis.document;
+  }
+});
+
+test("computer chooses its escape and turn; changing mode cancels pending work", async () => {
+  class Element {
+    children = [];
+    listeners = {};
+    attributes = {};
+    classList = { add() {}, toggle() {} };
+    append(child) { this.children.push(child); }
+    replaceChildren() { this.children = []; }
+    setAttribute(name, value) { this.attributes[name] = value; }
+    addEventListener(type, handler) { this.listeners[type] = handler; }
+    focus() { document.activeElement = this; this.listeners.focus?.(); }
+    click() { this.listeners.click?.(); }
+  }
+  const elements = Object.fromEntries(["board", "status", "hint", "opportunities", "restart", "mode"].map(id => [id, new Element()]));
+  elements.mode.value = "computer";
+  globalThis.document = {
+    querySelector: selector => elements[selector.slice(1)],
+    createElement: () => new Element()
+  };
+  const originalSetTimeout = globalThis.setTimeout;
+  const originalClearTimeout = globalThis.clearTimeout;
+  const timers = new Map();
+  let nextId = 0;
+  globalThis.setTimeout = callback => { const id = ++nextId; timers.set(id, callback); return id; };
+  globalThis.clearTimeout = id => timers.delete(id);
+  const tick = () => {
+    assert.equal(timers.size, 1);
+    const [id, callback] = timers.entries().next().value;
+    timers.delete(id);
+    callback();
+  };
+  try {
+    await import("./app.js?computer-test");
+    const board = elements.board;
+    board.children[2].click();
+    board.children[16].click();
+    assert.match(elements.status.textContent, /Computer: choosing an escape/);
+    board.children[52].click();
+    assert.match(elements.status.textContent, /Computer: choosing an escape/);
+    tick();
+    assert.match(board.children[52].attributes["aria-label"], /Black ship/);
+    assert.match(elements.status.textContent, /Computer: thinking/);
+    tick();
+    assert.doesNotMatch(elements.status.textContent, /Computer:/);
+    assert.equal(timers.size, 0);
+
+    elements.restart.click();
+    board.children[3].click();
+    board.children[1].click();
+    assert.match(elements.status.textContent, /Computer: thinking/);
+    tick();
+    assert.match(elements.status.textContent, /White: choose an escape/);
+    assert.match(board.children[30].attributes["aria-label"], /available destination/);
+    assert.equal(timers.size, 0);
+    board.children[30].click();
+    assert.match(elements.status.textContent, /White to move/);
+    assert.equal(timers.size, 0);
+
+    elements.restart.click();
+    board.children[2].click();
+    board.children[16].click();
+    assert.equal(timers.size, 1);
+    elements.mode.value = "two";
+    elements.mode.listeners.change();
+    assert.equal(timers.size, 0);
+    assert.match(elements.status.textContent, /White to move/);
+    assert.match(board.children[2].attributes["aria-label"], /White ship/);
+    assert.match(board.children[16].attributes["aria-label"], /Black ship/);
+  } finally {
+    globalThis.setTimeout = originalSetTimeout;
+    globalThis.clearTimeout = originalClearTimeout;
     delete globalThis.document;
   }
 });
