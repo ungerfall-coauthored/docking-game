@@ -21,8 +21,8 @@
           <button id="restart" class="icon-button" type="button" aria-label="New game" title="New game"><span aria-hidden="true">↻</span></button>
           <details class="info">
             <summary class="icon-button" aria-label="Game information and rules" title="Game information and rules">i</summary>
-            <div class="info-panel">
-              <h2>How to play</h2>
+            <div class="info-panel" role="region" aria-labelledby="info-heading" tabindex="0">
+              <h2 id="info-heading">How to play</h2>
               <p>Choose two players on one device or play as White against the computer. Changing modes starts a new game. White starts. Select a ship, then a highlighted square. Connect all eight of your ships through horizontal or vertical neighbors to win.</p>
               <p>A ship travels in any of eight directions. Count every ship in that direction, including itself; that is the exact travel distance. You may jump your own ships, but not an opposing ship, or land on your own.</p>
               <p>You may land on an opposing ship only if it can escape along an empty diagonal for at least four squares. Hover over or focus a ship to see possible displacements: C marks the opponent and E marks its escape squares. Select your ship, then select an opponent. Its captain clicks an escape square before the turn ends. Ships are never captured.</p>
