@@ -21,7 +21,8 @@ itself. It can jump friendly ships but not enemies; its destination cannot
 contain a friendly ship.
 
 Landing on an enemy is allowed only if that ship has a clear diagonal escape
-of at least four squares. The displaced captain then chooses an empty square
+of at least four squares. Select an enemy destination to preview its escape
+options before confirming the move. The displaced captain then chooses an empty square
 at least four squares away along a clear diagonal. A ship surrounded on all
 four orthogonal sides by enemy ships crashes, and its fleet loses.
 
