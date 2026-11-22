@@ -1,10 +1,12 @@
-import { WHITE, displace, legalMoves, move, newGame } from "./engine.js";
+import { BLACK, WHITE, displace, legalMoves, move, newGame } from "./engine.js";
+import { chooseComputerAction } from "./computer.js";
 
 const boardElement = document.querySelector("#board");
 const status = document.querySelector("#status");
 const hint = document.querySelector("#hint");
 const opportunities = document.querySelector("#opportunities");
 const restart = document.querySelector("#restart");
+const mode = document.querySelector("#mode");
 let game = newGame();
 let selected = null;
 let targets = [];
@@ -14,13 +16,17 @@ let hoverSquare = null;
 let focusSquare = null;
 let candidates = [];
 let decorations = [];
+let computerTimer = null;
+let computerError = false;
 
 const name = player => player === WHITE ? "White" : "Black";
 const squareName = square => `${"abcdefgh"[square % 8]}${Math.floor(square / 8) + 1}`;
+const computerTurn = () => mode.value === "computer" && !game.winner && !game.reason
+  && (game.pending ? game.pending.player : game.turn) === BLACK;
 
 function render() {
   candidates = [];
-  if (!game.pending && !game.reason && !game.winner) {
+  if (!game.pending && !game.reason && !game.winner && !computerTurn()) {
     const sources = selected === null ? game.board.map((_, i) => i) : [selected];
     for (const from of sources) {
       for (const to of legalMoves(game, from)) {
@@ -36,6 +42,12 @@ function render() {
   } else if (game.reason) {
     status.textContent = `Draw — ${game.reason === "repetition" ? "position repeated" : "no legal moves"}.`;
     hint.textContent = "Start a new game to play again.";
+  } else if (computerError) {
+    status.textContent = "Computer could not move";
+    hint.textContent = "Start a new game to try again.";
+  } else if (computerTurn()) {
+    status.textContent = game.pending ? "Computer: choosing an escape" : "Computer: thinking";
+    hint.textContent = "You play White.";
   } else if (game.pending) {
     status.textContent = `${name(game.pending.player)}: choose an escape`;
     hint.textContent = "Choose a highlighted square at least four diagonal spaces away.";
@@ -117,7 +129,7 @@ function updateHighlights() {
 }
 
 function select(square) {
-  if (game.winner || game.reason) return;
+  if (game.winner || game.reason || computerTurn() || computerError) return;
   focusedSquare = square;
   if (game.pending) {
     if (game.pending.choices.includes(square)) {
@@ -135,6 +147,27 @@ function select(square) {
   }
   render();
   boardElement.children[square].focus();
+  scheduleComputer();
+}
+
+function scheduleComputer() {
+  if (!computerTurn() || computerError || computerTimer !== null) return;
+  computerTimer = setTimeout(() => {
+    computerTimer = null;
+    if (!computerTurn()) return;
+    const action = chooseComputerAction(game);
+    if (!action) {
+      computerError = true;
+    } else {
+      game = action.escape !== undefined
+        ? displace(game, action.escape)
+        : move(game, action.from, action.to);
+    }
+    const restoreFocus = Array.from(boardElement.children).includes(document.activeElement);
+    render();
+    if (restoreFocus) boardElement.children[focusedSquare].focus();
+    scheduleComputer();
+  }, 250);
 }
 
 boardElement.addEventListener("keydown", event => {
@@ -167,7 +200,10 @@ boardElement.addEventListener("focusout", () => {
   updateHighlights();
 });
 
-restart.addEventListener("click", () => {
+function startGame() {
+  if (computerTimer !== null) clearTimeout(computerTimer);
+  computerTimer = null;
+  computerError = false;
   game = newGame();
   selected = null;
   targets = [];
@@ -176,5 +212,7 @@ restart.addEventListener("click", () => {
   hoverSquare = null;
   focusSquare = null;
   render();
-});
+}
+restart.addEventListener("click", startGame);
+mode.addEventListener("change", startGame);
 render();

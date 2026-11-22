@@ -10,9 +10,14 @@ python3 -m http.server 8000
 ```
 
 Visit <http://localhost:8000/>. The game has no build step or external runtime
-services. Run its engine tests with `node --test`.
+services and works in mobile browsers, including Telegram's in-app browser.
+Run its engine tests with `node --test`.
 
 ## Rules
+
+Choose two players on one device or play White against the computer. Changing
+the mode starts a new game. In computer mode, the computer plays Black and
+chooses the escape when a Black ship is displaced.
 
 Each fleet has eight ships on an 8×8 board. White starts; players alternate.
 Connect all of your ships orthogonally to win. A ship moves in any of eight
