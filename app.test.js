@@ -17,7 +17,7 @@ test("board keyboard navigation keeps one tab stop across selection and restart"
     }
     click() { this.listeners.click?.(); }
   }
-  const elements = Object.fromEntries(["board", "status", "hint", "opportunities", "restart", "preview-actions", "confirm-move", "cancel-preview"].map(id => [id, new Element()]));
+  const elements = Object.fromEntries(["board", "status", "hint", "opportunities", "restart"].map(id => [id, new Element()]));
   globalThis.document = {
     querySelector: selector => elements[selector.slice(1)],
     createElement: () => new Element()
@@ -53,7 +53,7 @@ test("board keyboard navigation keeps one tab stop across selection and restart"
   }
 });
 
-test("opponent escape is previewed before confirmation and remains the opponent's choice", async () => {
+test("hover previews escape and selecting an opponent immediately enables its escape", async () => {
   class Element {
     children = [];
     listeners = {};
@@ -66,7 +66,7 @@ test("opponent escape is previewed before confirmation and remains the opponent'
     focus() { document.activeElement = this; this.listeners.focus?.(); }
     click() { this.listeners.click?.(); }
   }
-  const elements = Object.fromEntries(["board", "status", "hint", "opportunities", "restart", "preview-actions", "confirm-move", "cancel-preview"].map(id => [id, new Element()]));
+  const elements = Object.fromEntries(["board", "status", "hint", "opportunities", "restart"].map(id => [id, new Element()]));
   globalThis.document = {
     querySelector: selector => elements[selector.slice(1)],
     createElement: () => new Element()
@@ -106,24 +106,13 @@ test("opponent escape is previewed before confirmation and remains the opponent'
     assert.match(board.children[52].attributes["aria-label"], /escape option after move/);
     assert.doesNotMatch(board.children[51].attributes["aria-label"], /escape option after move/);
     board.children[16].click();
-    assert.equal(elements["preview-actions"].hidden, false);
-    assert.match(elements.hint.textContent, /Black can escape to e7/);
-    assert.match(board.children[16].attributes["aria-label"], /Black ship, previewed opponent/);
-    assert.match(board.children[52].attributes["aria-label"], /escape option after move/);
-    assert.match(board.children[2].attributes["aria-label"], /White ship/);
-    board.children[52].click();
-    assert.match(elements.status.textContent, /White to move/);
-    elements["cancel-preview"].click();
-    assert.equal(elements["preview-actions"].hidden, true);
-    assert.match(board.children[16].attributes["aria-label"], /Black ship/);
-    board.children[16].click();
-    elements["confirm-move"].click();
     assert.match(elements.status.textContent, /Black: choose an escape/);
+    assert.match(board.children[16].attributes["aria-label"], /White ship/);
+    assert.match(board.children[2].attributes["aria-label"], /empty/);
     assert.match(board.children[52].attributes["aria-label"], /available destination/);
     board.children[52].click();
     assert.match(board.children[52].attributes["aria-label"], /Black ship/);
     assert.match(elements.status.textContent, /Black to move/);
-    assert.equal(elements["preview-actions"].hidden, true);
 
     elements.restart.click();
     const selectMove = (from, to) => {
@@ -132,18 +121,19 @@ test("opponent escape is previewed before confirmation and remains the opponent'
     };
     selectMove(5, 1);
     selectMove(40, 58);
-    elements["confirm-move"].click();
     board.children[30].click();
     selectMove(4, 18);
-    selectMove(32, 18);
-    assert.match(elements.hint.textContent, /White can escape to g7, h8/);
+    board.children[32].click();
+    board.children[18].listeners.pointerenter();
+    assert.match(elements.opportunities.textContent, /a5 → c3: g7, h8/);
     assert.deepEqual(board.children.flatMap((button, square) =>
       button.attributes["aria-label"].includes("escape option after move") ? [square] : []), [54, 63]);
     for (const square of [54, 63]) {
       assert.match(board.children[square].attributes["aria-label"], /escape option after move/);
       assert.equal(board.children[square].children.some(child => child.className === "escape-marker" && !child.hidden), true);
     }
-    elements["confirm-move"].click();
+    board.children[18].click();
+    assert.match(elements.status.textContent, /White: choose an escape/);
     for (const square of [54, 63])
       assert.match(board.children[square].attributes["aria-label"], /available destination/);
     board.children[63].click();

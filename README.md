@@ -23,7 +23,7 @@ contain a friendly ship.
 Landing on an enemy is allowed only if that ship has a clear diagonal escape
 of at least four squares. Hover over or focus a ship to see possible
 displacements and their escape squares; selecting a ship narrows the options. Select an enemy
-destination to confirm the move. The displaced captain then chooses an empty square
+destination to move there. The displaced captain then clicks an empty square
 at least four squares away along a clear diagonal. A ship surrounded on all
 four orthogonal sides by enemy ships crashes, and its fleet loses.
 
