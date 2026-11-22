@@ -6,7 +6,7 @@ test("board keyboard navigation keeps one tab stop across selection and restart"
     children = [];
     listeners = {};
     attributes = {};
-    classList = { add() {} };
+    classList = { add() {}, toggle() {} };
     append(child) { this.children.push(child); }
     replaceChildren() { this.children = []; }
     setAttribute(name, value) { this.attributes[name] = value; }
@@ -17,7 +17,7 @@ test("board keyboard navigation keeps one tab stop across selection and restart"
     }
     click() { this.listeners.click?.(); }
   }
-  const elements = Object.fromEntries(["board", "status", "hint", "restart", "preview-actions", "confirm-move", "cancel-preview"].map(id => [id, new Element()]));
+  const elements = Object.fromEntries(["board", "status", "hint", "opportunities", "restart", "preview-actions", "confirm-move", "cancel-preview"].map(id => [id, new Element()]));
   globalThis.document = {
     querySelector: selector => elements[selector.slice(1)],
     createElement: () => new Element()
@@ -58,7 +58,7 @@ test("opponent escape is previewed before confirmation and remains the opponent'
     children = [];
     listeners = {};
     attributes = {};
-    classList = { add() {} };
+    classList = { add() {}, toggle() {} };
     append(child) { this.children.push(child); }
     replaceChildren() { this.children = []; }
     setAttribute(name, value) { this.attributes[name] = value; }
@@ -66,7 +66,7 @@ test("opponent escape is previewed before confirmation and remains the opponent'
     focus() { document.activeElement = this; this.listeners.focus?.(); }
     click() { this.listeners.click?.(); }
   }
-  const elements = Object.fromEntries(["board", "status", "hint", "restart", "preview-actions", "confirm-move", "cancel-preview"].map(id => [id, new Element()]));
+  const elements = Object.fromEntries(["board", "status", "hint", "opportunities", "restart", "preview-actions", "confirm-move", "cancel-preview"].map(id => [id, new Element()]));
   globalThis.document = {
     querySelector: selector => elements[selector.slice(1)],
     createElement: () => new Element()
@@ -74,7 +74,24 @@ test("opponent escape is previewed before confirmation and remains the opponent'
   try {
     await import("./app.js?preview-test");
     const board = elements.board;
+    assert.equal(elements.opportunities.hidden, true);
+    board.children[16].listeners.pointerenter();
+    assert.match(elements.opportunities.textContent, /c1 → a3: e7/);
+    assert.doesNotMatch(elements.opportunities.textContent, /f1 → h3/);
+    assert.match(board.children[52].attributes["aria-label"], /escape option after move \(c1 to a3\)/);
+    assert.match(board.children[16].attributes["aria-label"], /can be displaced from c1/);
+    board.children[16].focus();
+    assert.match(elements.opportunities.textContent, /c1 → a3: e7/);
+    board.children[0].focus();
+    assert.equal(elements.opportunities.hidden, true);
+    board.listeners.pointerleave();
+    assert.equal(elements.opportunities.hidden, true);
+    assert.doesNotMatch(board.children[52].attributes["aria-label"], /escape option after move/);
     board.children[2].click();
+    assert.match(elements.opportunities.textContent, /c1 → a3: e7/);
+    assert.doesNotMatch(elements.opportunities.textContent, /f1 → h3/);
+    assert.match(board.children[52].attributes["aria-label"], /escape option after move/);
+    assert.doesNotMatch(board.children[51].attributes["aria-label"], /escape option after move/);
     board.children[16].click();
     assert.equal(elements["preview-actions"].hidden, false);
     assert.match(elements.hint.textContent, /Black can escape to e7/);
@@ -111,7 +128,7 @@ test("opponent escape is previewed before confirmation and remains the opponent'
       button.attributes["aria-label"].includes("escape option after move") ? [square] : []), [54, 63]);
     for (const square of [54, 63]) {
       assert.match(board.children[square].attributes["aria-label"], /escape option after move/);
-      assert.equal(board.children[square].children.some(child => child.className === "escape-marker"), true);
+      assert.equal(board.children[square].children.some(child => child.className === "escape-marker" && !child.hidden), true);
     }
     elements["confirm-move"].click();
     for (const square of [54, 63])

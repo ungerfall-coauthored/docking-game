@@ -3,6 +3,7 @@ import { BLACK, WHITE, displace, legalMoves, move, newGame } from "./engine.js";
 const boardElement = document.querySelector("#board");
 const status = document.querySelector("#status");
 const hint = document.querySelector("#hint");
+const opportunities = document.querySelector("#opportunities");
 const restart = document.querySelector("#restart");
 const previewActions = document.querySelector("#preview-actions");
 const confirmMove = document.querySelector("#confirm-move");
@@ -12,11 +13,25 @@ let selected = null;
 let targets = [];
 let focusedSquare = 0;
 let preview = null;
+let activeSquare = null;
+let candidates = [];
+let decorations = [];
 
 const name = player => player === WHITE ? "White" : "Black";
 const squareName = square => `${"abcdefgh"[square % 8]}${Math.floor(square / 8) + 1}`;
 
 function render() {
+  candidates = [];
+  if (!game.pending && !game.reason && !game.winner) {
+    const sources = selected === null ? game.board.map((_, i) => i) : [selected];
+    for (const from of sources) {
+      for (const to of legalMoves(game, from)) {
+        if (game.board[to] && (!preview || preview.to === to)) {
+          candidates.push({ ...move(game, from, to).pending, from, to });
+        }
+      }
+    }
+  }
   previewActions.hidden = !preview;
   if (game.winner) {
     status.textContent = `${name(game.winner)} wins — ${game.reason === "docked" ? "fleet docked" : "opposing ship trapped"}!`;
@@ -36,19 +51,18 @@ function render() {
   }
 
   boardElement.replaceChildren();
+  decorations = [];
   for (let square = 0; square < 64; square++) {
     const button = document.createElement("button");
     const piece = game.board[square];
     const marked = game.pending ? game.pending.choices.includes(square) : !preview && targets.includes(square);
-    const escape = preview?.choices.includes(square);
     button.type = "button";
     button.tabIndex = square === focusedSquare ? 0 : -1;
     button.className = `square ${(Math.floor(square / 8) + square % 8) % 2 ? "dark" : "light"}`;
     if (selected === square) button.classList.add("selected");
     if (marked) button.classList.add("target");
-    if (escape) button.classList.add("escape-preview");
     if (preview?.to === square) button.classList.add("preview-target");
-    button.setAttribute("aria-label", `${squareName(square)}, ${piece ? `${name(piece)} ship` : "empty"}${marked ? ", available destination" : ""}${escape ? ", escape option after move" : ""}${selected === square ? ", selected" : ""}${preview?.to === square ? ", previewed opponent" : ""}`);
+    const label = `${squareName(square)}, ${piece ? `${name(piece)} ship` : "empty"}${marked ? ", available destination" : ""}${selected === square ? ", selected" : ""}${preview?.to === square ? ", previewed opponent" : ""}`;
     if (piece) {
       const ship = document.createElement("span");
       ship.className = `ship ${piece}`;
@@ -60,21 +74,51 @@ function render() {
       marker.className = "marker";
       button.append(marker);
     }
-    if (escape) {
-      const marker = document.createElement("span");
-      marker.className = "escape-marker";
-      marker.setAttribute("aria-hidden", "true");
-      marker.textContent = "E";
-      button.append(marker);
-    }
+    const escapeMarker = document.createElement("span");
+    escapeMarker.className = "escape-marker";
+    escapeMarker.setAttribute("aria-hidden", "true");
+    escapeMarker.textContent = "E";
+    button.append(escapeMarker);
+    const captureMarker = document.createElement("span");
+    captureMarker.className = "capture-marker";
+    captureMarker.setAttribute("aria-hidden", "true");
+    captureMarker.textContent = "C";
+    button.append(captureMarker);
+    decorations.push({ button, label, escapeMarker, captureMarker });
     button.addEventListener("focus", () => {
       const previous = boardElement.children[focusedSquare];
       if (previous) previous.tabIndex = -1;
       focusedSquare = square;
       button.tabIndex = 0;
+      activeSquare = square;
+      updateHighlights();
+    });
+    button.addEventListener("pointerenter", () => {
+      activeSquare = square;
+      updateHighlights();
     });
     button.addEventListener("click", () => select(square));
     boardElement.append(button);
+  }
+  updateHighlights();
+}
+
+function updateHighlights() {
+  const escapes = preview ? candidates : candidates.filter(option =>
+    option.from === activeSquare || option.to === activeSquare);
+  opportunities.textContent = escapes.length
+    ? `Possible displacements (C = opponent, E = escape): ${escapes.map(option =>
+      `${squareName(option.from)} → ${squareName(option.to)}: ${option.choices.map(squareName).join(", ")}`).join("; ")}.`
+    : "";
+  opportunities.hidden = !escapes.length;
+  for (let square = 0; square < decorations.length; square++) {
+    const { button, label, escapeMarker, captureMarker } = decorations[square];
+    const escapeFor = escapes.filter(option => option.choices.includes(square));
+    const captureBy = escapes.filter(option => option.to === square);
+    button.classList.toggle("escape-preview", escapeFor.length > 0);
+    escapeMarker.hidden = !escapeFor.length;
+    captureMarker.hidden = !captureBy.length;
+    button.setAttribute("aria-label", `${label}${escapeFor.length ? `, escape option after move (${escapeFor.map(option => `${squareName(option.from)} to ${squareName(option.to)}`).join("; ")})` : ""}${captureBy.length && !preview ? `, can be displaced from ${captureBy.map(option => squareName(option.from)).join(", ")}` : ""}`);
   }
 }
 
@@ -127,6 +171,11 @@ boardElement.addEventListener("keydown", event => {
   boardElement.children[destination].focus();
 });
 
+boardElement.addEventListener("pointerleave", () => {
+  activeSquare = null;
+  updateHighlights();
+});
+
 confirmMove.addEventListener("click", () => {
   if (!preview) return;
   const to = preview.to;
@@ -154,6 +203,7 @@ restart.addEventListener("click", () => {
   targets = [];
   focusedSquare = 0;
   preview = null;
+  activeSquare = null;
   render();
 });
 render();
