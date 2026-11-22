@@ -72,3 +72,32 @@ test("board edges alone do not count as surrounding ships", () => {
   const result = move(game, at(1, 1), at(0, 1));
   assert.notEqual(result.reason, "trapped");
 });
+
+test("the third occurrence of a position with the same player to move is a draw", () => {
+  let game = newGame();
+  for (let cycle = 0; cycle < 2; cycle++) {
+    for (const [from, to] of [[2, 6], [16, 9], [6, 2], [9, 16]]) {
+      game = move(game, from, to);
+    }
+    assert.equal(game.reason, cycle === 0 ? null : "repetition");
+  }
+  assert.equal(game.winner, null);
+});
+
+test("simultaneous docking favors the moving fleet", () => {
+  const game = position([[1, 1], [2, 2]], [[6, 6], [6, 7]]);
+  const result = move(game, at(2, 2), at(2, 1));
+  assert.equal(result.winner, WHITE);
+  assert.equal(result.reason, "docked");
+});
+
+test("a crash takes precedence when the moving fleet also docks", () => {
+  const game = position(
+    [[3, 2], [2, 3], [4, 3], [3, 7], [2, 2], [4, 2], [2, 4], [4, 4]],
+    [[3, 3], [7, 7]]
+  );
+  const result = move(game, at(3, 7), at(3, 4));
+  assert.equal(connected(result.board, WHITE), true);
+  assert.equal(result.winner, WHITE);
+  assert.equal(result.reason, "trapped");
+});

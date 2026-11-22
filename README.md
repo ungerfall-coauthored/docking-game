@@ -2,7 +2,8 @@
 
 A two-player, pass-and-play board game inspired by "Стыковка" (Docking),
 pages 409–412 of [the source book](https://djvu.online/file/Q65rmYCZMvkfx).
-Open the site in a modern browser or serve this directory as static files:
+Play the hosted site in a modern browser, or serve this directory as static
+files (opening `index.html` directly does not load its JavaScript modules):
 
 ```sh
 python3 -m http.server 8000
@@ -28,5 +29,6 @@ The book does not specify who chooses a displacement destination, the exact
 distance on a longer clear diagonal, the first player, or tie handling. This
 implementation uses the captain's choice and a four-square minimum, starts
 white, awards simultaneous docking to the moving player, and treats threefold
-repetition or having no legal move as a draw. A crash takes precedence over
-docking. Board edges do not count as enemy ships for a crash.
+repetition of a position with the same player to move or having no legal move
+as a draw. A crash takes precedence over docking; if both fleets crash, the
+moving player wins. Board edges do not count as enemy ships for a crash.

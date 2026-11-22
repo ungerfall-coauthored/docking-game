@@ -12,7 +12,7 @@ Inspect repository root for source layout.
 
 ## Commands
 
-(none detected — add build/test commands here)
+Run engine tests with `node --test`.
 
 ## Workflow
 

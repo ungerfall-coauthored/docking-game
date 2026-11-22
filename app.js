@@ -7,6 +7,7 @@ const restart = document.querySelector("#restart");
 let game = newGame();
 let selected = null;
 let targets = [];
+let focusedSquare = 0;
 
 const name = player => player === WHITE ? "White" : "Black";
 const squareName = square => `${"abcdefgh"[square % 8]}${Math.floor(square / 8) + 1}`;
@@ -32,6 +33,7 @@ function render() {
     const piece = game.board[square];
     const marked = game.pending ? game.pending.choices.includes(square) : targets.includes(square);
     button.type = "button";
+    button.tabIndex = square === focusedSquare ? 0 : -1;
     button.className = `square ${(Math.floor(square / 8) + square % 8) % 2 ? "dark" : "light"}`;
     if (selected === square) button.classList.add("selected");
     if (marked) button.classList.add("target");
@@ -47,6 +49,12 @@ function render() {
       marker.className = "marker";
       button.append(marker);
     }
+    button.addEventListener("focus", () => {
+      const previous = boardElement.children[focusedSquare];
+      if (previous) previous.tabIndex = -1;
+      focusedSquare = square;
+      button.tabIndex = 0;
+    });
     button.addEventListener("click", () => select(square));
     boardElement.append(button);
   }
@@ -54,6 +62,7 @@ function render() {
 
 function select(square) {
   if (game.winner || game.reason) return;
+  focusedSquare = square;
   if (game.pending) {
     if (game.pending.choices.includes(square)) {
       game = displace(game, square);
@@ -72,10 +81,29 @@ function select(square) {
   boardElement.children[square].focus();
 }
 
+boardElement.addEventListener("keydown", event => {
+  const square = Array.prototype.indexOf.call(boardElement.children, event.target);
+  if (square < 0) return;
+  const x = square % 8, y = Math.floor(square / 8);
+  const destination = {
+    ArrowLeft: x > 0 ? square - 1 : square,
+    ArrowRight: x < 7 ? square + 1 : square,
+    ArrowUp: y > 0 ? square - 8 : square,
+    ArrowDown: y < 7 ? square + 8 : square
+  }[event.key];
+  if (destination === undefined) return;
+  event.preventDefault();
+  boardElement.children[square].tabIndex = -1;
+  focusedSquare = destination;
+  boardElement.children[destination].tabIndex = 0;
+  boardElement.children[destination].focus();
+});
+
 restart.addEventListener("click", () => {
   game = newGame();
   selected = null;
   targets = [];
+  focusedSquare = 0;
   render();
 });
 render();
