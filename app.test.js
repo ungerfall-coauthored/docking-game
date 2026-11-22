@@ -94,6 +94,30 @@ test("opponent escape is previewed before confirmation and remains the opponent'
     assert.match(board.children[52].attributes["aria-label"], /Black ship/);
     assert.match(elements.status.textContent, /Black to move/);
     assert.equal(elements["preview-actions"].hidden, true);
+
+    elements.restart.click();
+    const selectMove = (from, to) => {
+      board.children[from].click();
+      board.children[to].click();
+    };
+    selectMove(5, 1);
+    selectMove(40, 58);
+    elements["confirm-move"].click();
+    board.children[30].click();
+    selectMove(4, 18);
+    selectMove(32, 18);
+    assert.match(elements.hint.textContent, /White can escape to g7, h8/);
+    assert.deepEqual(board.children.flatMap((button, square) =>
+      button.attributes["aria-label"].includes("escape option after move") ? [square] : []), [54, 63]);
+    for (const square of [54, 63]) {
+      assert.match(board.children[square].attributes["aria-label"], /escape option after move/);
+      assert.equal(board.children[square].children.some(child => child.className === "escape-marker"), true);
+    }
+    elements["confirm-move"].click();
+    for (const square of [54, 63])
+      assert.match(board.children[square].attributes["aria-label"], /available destination/);
+    board.children[63].click();
+    assert.match(board.children[63].attributes["aria-label"], /White ship/);
   } finally {
     delete globalThis.document;
   }

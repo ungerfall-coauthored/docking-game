@@ -29,7 +29,7 @@ function render() {
     hint.textContent = "Choose a highlighted square at least four diagonal spaces away.";
   } else if (preview) {
     status.textContent = `${name(game.turn)} to move`;
-    hint.textContent = `${name(preview.player)} can escape to ${preview.choices.map(squareName).join(", ")} (green). Confirm the move; ${name(preview.player)} chooses the escape.`;
+    hint.textContent = `${name(preview.player)} can escape to ${preview.choices.map(squareName).join(", ")} (green E markers). Confirm the move; ${name(preview.player)} chooses the escape.`;
   } else {
     status.textContent = `${name(game.turn)} to move`;
     hint.textContent = selected === null ? "Choose one of your ships." : "Choose a highlighted destination, or select another ship.";
@@ -58,6 +58,13 @@ function render() {
     } else if (marked) {
       const marker = document.createElement("span");
       marker.className = "marker";
+      button.append(marker);
+    }
+    if (escape) {
+      const marker = document.createElement("span");
+      marker.className = "escape-marker";
+      marker.setAttribute("aria-hidden", "true");
+      marker.textContent = "E";
       button.append(marker);
     }
     button.addEventListener("focus", () => {
